@@ -1,0 +1,38 @@
+name: Release
+
+# Trigger: push a git tag like v0.1.0 → auto publish to npm
+#
+# Setup once:
+#  1. Get an npm access token: npm token create --type=automation
+#  2. Add it as GitHub repo secret: Settings → Secrets → Actions → NPM_TOKEN
+#
+# Release flow:
+#  1. Bump version in package.json (npm version patch/minor/major)
+#  2. git push --tags
+#  3. GitHub Actions publishes to npm
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # for npm provenance
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
